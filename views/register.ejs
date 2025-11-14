@@ -1,0 +1,27 @@
+<%- include('header', { title: 'Регистрация' }); %>
+    <div class="auth-form">
+        <h1>Регистрация</h1>
+        <form action="/signup" method="POST">
+            <label for="name">Имя:</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password" required>
+
+            <% if (typeof error !== 'undefined') { %>
+                <div class="error-message"><%= error %></div>
+            <% } %>
+            <% if (typeof msg !== 'undefined') { %>
+                <div class="success-message"><%= msg %></div>
+            <% } %>
+
+            <button type="submit">Зарегистрироваться</button>
+            <div class="link">
+                <a href="/login">Вход</a>
+            </div>
+        </form>
+    </div>
+<%- include('footer'); %>

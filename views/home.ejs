@@ -1,0 +1,10 @@
+<%- include('header', { title: 'Личный кабинет' }); %>
+    <div class="profile1">
+        <h1>Добро пожаловать!</h1>
+        <div class="user-info">
+            <h2><%= user.name %></h2>
+            <p><strong>Email:</strong> <%= user.email %></p>
+        </div>
+        <a href="/logout" class="logout-btn">Выйти</a>
+    </div>
+<%- include('footer'); %>

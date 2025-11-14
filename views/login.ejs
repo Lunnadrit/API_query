@@ -1,0 +1,21 @@
+<%- include('header', { title: 'Вход в систему' }); %>
+    <div class="auth-form">
+        <h1>Вход</h1>
+        <form action="/login" method="POST">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" name="password" required>
+
+            <% if (typeof error !== 'undefined') { %>
+                <div class="error-message"><%= error %></div>
+            <% } %>
+
+            <button type="submit">Войти</button>
+            <div class="link">
+                <a href="/signup">Регистрация</a>
+            </div>
+        </form>
+    </div>
+<%- include('footer'); %>
