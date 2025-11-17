@@ -11,17 +11,29 @@ const db = new sqlite3.Database(dbPath, (err) => {
     } else {
         console.log('Connected to SQLite database.');
 
-        // Создание таблицы пользователей
+        // Создание таблицы пользователей (для новых БД сразу с github_id)
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            github_id TEXT
         )`, (err) => {
             if (err) {
                 console.error('Error creating table:', err.message);
             } else {
                 console.log('Users table ready.');
+            }
+        });
+
+        // Миграция для старой таблицы (добавляем колонку, если её не было)
+        db.run(`ALTER TABLE users ADD COLUMN github_id TEXT`, (err) => {
+            if (err) {
+                if (!/duplicate column name/i.test(err.message)) {
+                    console.error('Error adding github_id column:', err.message);
+                }
+            } else {
+                console.log('Column github_id added to users table.');
             }
         });
     }
@@ -31,7 +43,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 module.exports = {
     run: (sql, params = []) => {
         return new Promise((resolve, reject) => {
-            db.run(sql, params, function(err) {
+            db.run(sql, params, function (err) {
                 if (err) reject(err);
                 else resolve(this);
             });

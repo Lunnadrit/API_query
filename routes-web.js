@@ -1,6 +1,8 @@
 const router = require("express").Router();
 const { body } = require("express-validator");
 
+const passport = require("passport");
+
 const {
     homePage,
     register,
@@ -10,62 +12,75 @@ const {
     logout
 } = require("./controllers-web/userController");
 
+// Упрощенные проверки аутентификации через Passport
 const ifNotLoggedin = (req, res, next) => {
-    if(!req.session.userID){
+    if(!req.isAuthenticated()){
         return res.redirect('/login');
     }
     next();
 }
 
 const ifLoggedin = (req, res, next) => {
-    if(req.session.userID){
+    if(req.isAuthenticated()){
         return res.redirect('/');
     }
     next();
 }
 
+// Основные маршруты
 router.get('/', ifNotLoggedin, homePage);
 
 router.get("/login", ifLoggedin, loginPage);
-router.post("/login",
-    ifLoggedin,
-    [
-        body("email", "Invalid email address")
-            .notEmpty()
-            .escape()
-            .trim()
-            .isEmail(),
-        body("password", "The Password must be of minimum 4 characters length")
-            .notEmpty()
-            .trim()
-            .isLength({ min: 4 })
-    ],
-    login
-);
+
+router.post("/login", ifLoggedin, login);
 
 router.get("/signup", ifLoggedin, registerPage);
-router.post(
-    "/signup",
+
+router.post("/signup", ifLoggedin, register);
+
+// ==================================================
+//               GITHUB OAUTH МАРШРУТЫ
+// ==================================================
+router.get(
+    '/auth/github',
     ifLoggedin,
-    [
-        body("name", "The name must be of minimum 3 characters length")
-            .notEmpty()
-            .escape()
-            .trim()
-            .isLength({ min: 3 }),
-        body("email", "Invalid email address")
-            .notEmpty()
-            .escape()
-            .trim()
-            .isEmail(),
-        body("password", "The Password must be of minimum 4 characters length")
-            .notEmpty()
-            .trim()
-            .isLength({ min: 4 })
-    ],
-    register
+    passport.authenticate('github', { scope: ['user:email'] })
 );
 
+router.get(
+    '/auth/github/callback',
+    passport.authenticate('github', {
+        failureRedirect: '/login',
+        failureMessage: true
+    }),
+    (req, res) => {
+        console.log('GitHub callback - success, user:', req.user);
+        res.redirect('/');
+    }
+);
+
+// ==================================================
+//               GOOGLE OAUTH МАРШРУТЫ
+// ==================================================
+router.get(
+    '/auth/google',
+    ifLoggedin,
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+router.get(
+    '/auth/google/callback',
+    passport.authenticate('google', {
+        failureRedirect: '/login',
+        failureMessage: true
+    }),
+    (req, res) => {
+        console.log('Google callback - success, user:', req.user);
+        res.redirect('/');
+    }
+);
+
+// Выход
 router.get('/logout', logout);
 
 module.exports = router;

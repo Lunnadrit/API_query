@@ -1,22 +1,19 @@
 const { validationResult } = require("express-validator");
 const bcrypt = require('bcryptjs');
 const db = require("../dbConnection");
+const passport = require("passport");
 
 // Главная страница (после входа)
 exports.homePage = async (req, res, next) => {
-    if (!req.session.userID) {
+    // Используем Passport аутентификацию вместо req.session.userID
+    if (!req.isAuthenticated()) {
         return res.redirect('/login');
     }
 
     try {
-        const row = await db.get("SELECT * FROM users WHERE id = ?", [req.session.userID]);
-
-        if (!row) {
-            return res.redirect('/logout');
-        }
-
+        // req.user уже содержит данные пользователя из Passport
         res.render('home', {
-            user: row
+            user: req.user
         });
     } catch (error) {
         next(error);
@@ -25,7 +22,7 @@ exports.homePage = async (req, res, next) => {
 
 // Страница регистрации
 exports.registerPage = (req, res) => {
-    if (req.session.userID) {
+    if (req.isAuthenticated()) {
         return res.redirect('/');
     }
     res.render("register");
@@ -33,7 +30,7 @@ exports.registerPage = (req, res) => {
 
 // Обработка регистрации
 exports.register = async (req, res, next) => {
-    if (req.session.userID) {
+    if (req.isAuthenticated()) {
         return res.redirect('/');
     }
 
@@ -81,15 +78,15 @@ exports.register = async (req, res, next) => {
 
 // Страница входа
 exports.loginPage = (req, res) => {
-    if (req.session.userID) {
+    if (req.isAuthenticated()) {
         return res.redirect('/');
     }
     res.render("login");
 };
 
-// Обработка входа
+// Обработка входа (локальная аутентификация)
 exports.login = async (req, res, next) => {
-    if (req.session.userID) {
+    if (req.isAuthenticated()) {
         return res.redirect('/');
     }
 
@@ -114,13 +111,18 @@ exports.login = async (req, res, next) => {
         const checkPass = await bcrypt.compare(password, row.password);
 
         if (checkPass) {
-            req.session.userID = row.id;
-            return res.redirect('/');
+            // Используем Passport для логина вместо прямой работы с сессией
+            req.login(row, (err) => {
+                if (err) {
+                    return next(err);
+                }
+                return res.redirect('/');
+            });
+        } else {
+            res.render('login', {
+                error: 'Неверный пароль'
+            });
         }
-
-        res.render('login', {
-            error: 'Неверный пароль'
-        });
     } catch (error) {
         next(error);
     }
@@ -128,10 +130,16 @@ exports.login = async (req, res, next) => {
 
 // Выход
 exports.logout = (req, res) => {
-    req.session.destroy((err) => {
+    req.logout((err) => {
         if (err) {
-            console.error('Session destroy error:', err);
+            console.error('Logout error:', err);
+            return next(err);
         }
-        res.redirect('/login');
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destroy error:', err);
+            }
+            res.redirect('/login');
+        });
     });
 };
